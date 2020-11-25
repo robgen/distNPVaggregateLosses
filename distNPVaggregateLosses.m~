@@ -115,7 +115,7 @@ classdef distNPVaggregateLosses
                 sum(self.CDFlossGivenIM(1:self.lastStepIM,:) .* mafIMmatrix) ./ ...
                 sum(self.MAFim(:,2));
             
-            self.PDFlossGivenOneEvent = self.numericalGradient(...
+            self.PDFlossGivenOneEvent = self.numericalDerivative(...
                 self.CDFlossGivenOneEvent);
         end
         
@@ -183,8 +183,8 @@ classdef distNPVaggregateLosses
             self.TAUdef = linspace(0, ...
                 8*self.parameters.General.timeHorizon, 100);
             
-            self.IMdef = [0; (eps:0.005: ...
-                2*max(self.parameters.Vulnerability.fragMedians))'];
+            self.IMdef = (0:0.005: ...
+                2*max(self.parameters.Vulnerability.fragMedians))';
             
             self.LOSSdef = linspace(0,1,501)' + eps;
             % MUST BE equally spaced. MUST start from eps
@@ -227,9 +227,7 @@ classdef distNPVaggregateLosses
                 self.CDFlossGivenDS(:,ds) = betacdf(...
                     self.LOSSdef, alfa(ds), beta(ds));
             end
-            % P(L<l|DS0) is a step function centered at zero
-            self.CDFlossGivenDS(2:end,1) = 1;
-            
+            self.CDFlossGivenDS(:,1) = 1; % P(L<l|DS0) = 1 for any l
         end
         
         

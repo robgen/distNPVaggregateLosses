@@ -111,7 +111,7 @@ for n = 1 : obj.NmaxEvents
     plot(obj.PDFunitCashFlowNPV(:,1), obj.PDFunitCashFlowNPV(:,n+1), ...
         'LineWidth', 2, 'Color', colEvents(n,:))
 end
-legend(strcat('event ', num2str(nev(:))), 'Location', 'North')
+legend(strcat('event ', num2str(nev(:))), 'Location', 'NorthWest')
 xlabel('NPV unit cash flow, NPV^{(1)}')
 ylabel('p(NPV^{(1)})')
 set(gca, 'FontSize', 18)
@@ -122,7 +122,6 @@ for n = 1 : obj.NmaxEvents
     plot(obj.PDFlossNPV(:,1), obj.PDFlossNPV(:,n+1), ...
         'LineWidth', 2, 'Color', colEvents(n,:))
 end
-axis([0 0.3 0 10])
 legend(strcat('event ', num2str(nev(:))), 'Location', 'NorthEast')
 xlabel('NPV loss, NPV(L)')
 ylabel('p(NPV(L))')
@@ -138,7 +137,6 @@ for n = 1 : obj.NmaxEvents
         obj.PDFaggLossNPVGivenNevents(:,n+1), ...
         'LineWidth', 2, 'Color', colEvents(n,:))
 end
-axis([0 2.5 0 obj.PDFaggLossNPV(20,2)])
 legend(strcat('event ', num2str(nev(:))), 'Location', 'NorthEast')
 xlabel('NPV(AL)')
 ylabel('p(NPV(AL))')
@@ -147,8 +145,6 @@ set(gca, 'FontSize', 18)
 figure; hold on
 plot(obj.PDFaggLossNPV(:,1), obj.PDFaggLossNPV(:,2), ...
      'LineWidth', 2)
- 
-axis([0 2.5 0 obj.PDFaggLossNPV(20,2)])
 xlabel('NPV(AL)')
 ylabel('p(NPV(AL))')
 set(gca, 'FontSize', 18)
