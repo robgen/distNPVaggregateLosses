@@ -115,8 +115,11 @@ classdef distNPVaggregateLosses
                 sum(self.CDFlossGivenIM(1:self.lastStepIM,:) .* mafIMmatrix) ./ ...
                 sum(self.MAFim(:,2));
             
-            self.PDFlossGivenOneEvent = self.numericalGradient(...
+            warning('put back the numerical gradient if Loss has uniform points')
+            self.PDFlossGivenOneEvent = self.numericalDerivative(...
                 self.CDFlossGivenOneEvent);
+            %self.PDFlossGivenOneEvent = self.numericalGradient(...
+            %    self.CDFlossGivenOneEvent);
         end
         
         
@@ -129,7 +132,7 @@ classdef distNPVaggregateLosses
             
             NPVratioMatrix = repmat(npvL, 1, numel(npv1)) ./ ...
                 repmat(npv1, numel(npvL), 1);
-            NPVratioMatrix(1,:) = NPVratioMatrix(1,:) + eps;
+            %NPVratioMatrix(1,:) = NPVratioMatrix(1,:) + eps;
             
             PDFlossInterp = interp1(self.PDFlossGivenOneEvent(:,1), ...
                 self.PDFlossGivenOneEvent(:,2), NPVratioMatrix);
@@ -150,6 +153,16 @@ classdef distNPVaggregateLosses
                 for row = size(integrand,1) : -1 : 1
                     self.PDFlossNPV(row,n+1) = trapz(npv1, integrand(row,:));
                 end
+                
+%                 row = 1;
+%                 figure; hold on
+%                 plot(npv1, integrand(row,:), 'LineWidth', 2)
+%                 plot(npv1, PDFnpv1matrix(row,:), 'LineWidth', 2)
+%                 plot(npv1, PDFlossInterp(row,:), 'LineWidth', 2)
+%                 plot(npv1, absOneOverNPV1, 'LineWidth', 2)
+%                 legend('integrand', 'PDFnpv1matrix', 'PDFlossInterp', 'absOneOverNPV1')
+%                 title(sprintf('n=%d, row=%d', n, row))
+%                 axis([0 1 0 1000])
             end
             
             self.PDFlossNPV(:,1) = npvL;
@@ -255,6 +268,8 @@ classdef distNPVaggregateLosses
             r = self.parameters.General.intRate;
             v = self.parameters.Hazard.faultRate;
             
+            warning('put npv definition back if Loss has uniform points')
+            %npv = linspace(0, max(self.LOSSdef), 501) + eps;
             npv = self.LOSSdef;
             
             log1R = log(1./npv) / log(1+r); % base 1+r
@@ -275,12 +290,12 @@ classdef distNPVaggregateLosses
             self.TAUdef = linspace(0, ...
                 8*self.parameters.General.timeHorizon, 100);
             
-            self.IMdef = [0; (eps:0.005: ...
-                2*max(self.parameters.Vulnerability.fragMedians))'];
+            self.IMdef = (eps:0.005: ...
+                3*max(self.parameters.Vulnerability.fragMedians))';
             
-            Nsteps = self.parameters.Setup.NlossSamples;
-            self.LOSSdef = linspace(0,1,Nsteps)' + 10*eps;
-            % MUST BE equally spaced for convolution. MUST start from eps
+            %self.LOSSdef = linspace(0,1,1001)' + 10*eps;
+            self.LOSSdef = [eps; logspace(-15,0,1000)']; % linspace(0.1,1,100)'];
+            % MUST BE equally spaced. MUST start from eps
         end
         
         
@@ -288,7 +303,7 @@ classdef distNPVaggregateLosses
             % setAllParameters deals with the optional parameters
             
             % build basic parameters
-            macroFieldsPar = {'General', 'Vulnerability', 'Hazard', 'Setup'};
+            macroFieldsPar = {'General', 'Vulnerability', 'Hazard'};
             
             microFieldsPar{1} = {'timeHorizon', 'intRate' };
             microFieldsParVals{1} = {50, 0.02};
@@ -298,9 +313,6 @@ classdef distNPVaggregateLosses
             
             microFieldsPar{3} = {'hazCurve', 'faultRate' };
             microFieldsParVals{3} = {[0.166427989012818,0.0332146240000000;0.217582434028613,0.0198850450000000;0.258529430931683,0.0138629440000000;0.303930770035728,0.00988592600000000;0.354443451456181,0.00713349900000000;0.412206673094016,0.00496922700000000;0.565248464301760,0.00210721000000000;0.695119133694674,0.00102586600000000;0.846507595616605,0.000404054000000000] , 0.05};
-            
-            microFieldsPar{4} = {'NlossSamples', 'IMstep' };
-            microFieldsParVals{4} = {501, 0.005};
             
             for F = 1 : numel(macroFieldsPar)
                 for f = 1 : numel(microFieldsPar{F})
@@ -345,7 +357,7 @@ classdef distNPVaggregateLosses
             
             % Note: curve must have EQUALLY-SPACED points
             if numel( uniquetol(diff(curve(:,1)), 1000*eps) ) > 1
-                warning('Make sure that "curve" contains equally spaced points')
+                warning('Please make sure that "curve" contains equally spaced points')
             end
             
             derivative(:,1) = curve(:,1);
@@ -375,21 +387,23 @@ classdef distNPVaggregateLosses
         
         function convRecurs = recursiveConvolution(FXsToConvolute)
             
-            % Note: the PDFs must have EQUALLY-SPACED points
-            if numel( uniquetol(diff(FXsToConvolute(:,1)), 1000*eps) ) > 1
-                warning('Make sure LOSSdef contains equally spaced points')
+            FXsToConvoluteResamp(:,1) = linspace(eps,1-eps,1001)';
+            n = size(FXsToConvolute,2)-1;
+            for k = n : -1 : 1
+                FXsToConvoluteResamp(:,k+1) = interp1(...
+                    FXsToConvolute(:,1), FXsToConvolute(:,k+1), ...
+                    FXsToConvoluteResamp(:,1));
             end
             
-            stepSize = FXsToConvolute(2,1) - FXsToConvolute(1,1);
-            n = size(FXsToConvolute,2)-1;
+            stepSize = FXsToConvoluteResamp(2,1) - FXsToConvoluteResamp(1,1);
             
             convRecursCell = cell(n,1);
-            convRecursCell{1}(:,1) = FXsToConvolute(:,1);
-            convRecursCell{1}(:,2) = FXsToConvolute(:,2);
+            convRecursCell{1}(:,1) = FXsToConvoluteResamp(:,1);
+            convRecursCell{1}(:,2) = FXsToConvoluteResamp(:,2);
             for ii = 1 : n-1
                 % X values
                 [dummy1, dummy2] = meshgrid(...
-                    convRecursCell{ii}(:,1), FXsToConvolute(:,1));
+                    convRecursCell{ii}(:,1), FXsToConvoluteResamp(:,1));
                 convRecursCell{ii+1}(:,1) = uniquetol(dummy1+dummy2, 10*eps);
                 % this line should give a vector with length length(u)+length(v)-1,
                 % where u and v are the operands of conv. This does not happen if i
@@ -399,7 +413,7 @@ classdef distNPVaggregateLosses
                 
                 % Y values
                 convRecursCell{ii+1}(:,2) = stepSize * conv(...
-                    convRecursCell{ii}(:,2), FXsToConvolute(:,ii+2));
+                    convRecursCell{ii}(:,2), FXsToConvoluteResamp(:,ii+2));
                 
                 clear dummy1 dummy2
             end

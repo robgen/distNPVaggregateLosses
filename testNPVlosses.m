@@ -87,9 +87,6 @@ set(gca, 'FontSize', 18)
 figure; hold on
 plot(obj.CDFlossGivenOneEvent(:,1), obj.CDFlossGivenOneEvent(:,2), ...
     'LineWidth', 2)
-CDFdummy = obj.numericalIntegral(obj.PDFlossGivenOneEvent);
-plot(CDFdummy(:,1), CDFdummy(:,2), ...
-    'LineWidth', 2)
 xlabel('Loss, l')
 ylabel('P(L\leql)')
 set(gca, 'FontSize', 18)
@@ -98,6 +95,7 @@ set(gca, 'FontSize', 18)
 figure; hold on
 plot(obj.PDFlossGivenOneEvent(:,1), obj.PDFlossGivenOneEvent(:,2), ...
     'LineWidth', 2)
+axis([0 1 0 10])
 xlabel('Loss, L')
 ylabel('p(L)')
 set(gca, 'FontSize', 18)
@@ -128,6 +126,17 @@ xlabel('NPV loss, NPV(L)')
 ylabel('p(NPV(L))')
 set(gca, 'FontSize', 18)
 
+figure; hold on
+for n = 1 : obj.NmaxEvents
+    plot(obj.PDFlossNPV(:,1), ...
+        cumtrapz(obj.PDFlossNPV(:,1),obj.PDFlossNPV(:,n+1)), ...
+        'LineWidth', 2, 'Color', colEvents(n,:))
+end
+legend(strcat('event ', num2str(nev(:))), 'Location', 'NorthEast')
+xlabel('NPV loss, npv(L)')
+ylabel('p(NPV(L)>npv(L))')
+set(gca, 'FontSize', 18)
+
 %% PDF aggregate loss NPV
 
 obj = obj.getPDFaggregateLossNPV;
@@ -148,37 +157,39 @@ figure; hold on
 plot(obj.PDFaggLossNPV(:,1), obj.PDFaggLossNPV(:,2), ...
      'LineWidth', 2)
  
-axis([0 2.5 0 obj.PDFaggLossNPV(20,2)])
+axis([0 11 0 obj.PDFaggLossNPV(20,2)])
 xlabel('NPV(AL)')
 ylabel('p(NPV(AL))')
 set(gca, 'FontSize', 18)
 
 %% Test PDF areas
 
+toll = 0.01;
+
 % interarrival
 totA = trapz(obj.PDFinterarrivalTime(:,1), obj.PDFinterarrivalTime(:,2));
-assert(abs(totA-1)<0.01, 'area under the \Delta \tau PDF is not one')
+assert(abs(totA-1)<toll, 'area under the \Delta \tau PDF is not one')
 
 % N events
-assert(abs(sum(obj.PMFnumberEvents(:,2))-1)<0.01, 'Area of N_{ev} PMF is not one')
+assert(abs(sum(obj.PMFnumberEvents(:,2))-1)<toll, ...
+    'Area of N_{ev} PMF is not one')
 
 % arrival
-for n = 1 : obj.NmaxEvents
+for n = obj.NmaxEvents : -1 : 1
     totArea(n) = trapz(obj.PDFarrivalTime(:,1), obj.PDFarrivalTime(:,n+1));
 end
-assert(any(abs(totArea-1)<0.01), 'area under the \tau PDFs is not one')
+assert(any(abs(totArea-1)<toll), 'area under the \tau PDFs is not one')
 
 % loss|DS
 clear derivative
-derivative(:,1) = obj.LOSSdef;
-for ds = 2 : 5
-    derivative(:,2) = gradient(obj.CDFlossGivenDS(:,ds), ...
-        obj.LOSSdef(2,1)-obj.LOSSdef(1,1));
+for ds = 5 : -1 : 2
+    derivative = obj.numericalDerivative(...
+        [obj.LOSSdef, obj.CDFlossGivenDS(:,ds)]);
     
     dsArea(ds-1) = trapz(derivative(:,1),derivative(:,2));
 end
 
-assert(any(abs(dsArea-1)<0.01), 'area under the Loss|DS PDFs is not one')
+assert(any(abs(dsArea-1)<toll), 'area under the Loss|DS PDFs is not one')
 
 % IM
 pdfIM(:,1) = obj.MAFim(:,1);
@@ -187,31 +198,29 @@ imArea = trapz(pdfIM(:,1),pdfIM(:,2));
 %assert(abs(imArea-1)<0.01, 'area under the PDF(IM) is not one')
 
 % loss|one event
-lossArea = trapz(obj.PDFlossGivenOneEvent(:,1), obj.PDFlossGivenOneEvent(:,2)) + ...
-    obj.CDFlossGivenOneEvent(1,2);
-assert(abs(lossArea-1)<0.02, 'area under the loss|1ev PDF is not one')
+lossArea = trapz(obj.PDFlossGivenOneEvent(:,1), obj.PDFlossGivenOneEvent(:,2));
+assert(abs(lossArea-1)<toll, 'area under the loss|1ev PDF is not one')
 
 % NPV1
-for n = 1 : obj.NmaxEvents
+for n = obj.NmaxEvents : -1 : 1
     areaNPV1(n) = trapz(obj.PDFunitCashFlowNPV(:,1), ...
         obj.PDFunitCashFlowNPV(:,n+1));
 end
-assert(any(abs(areaNPV1-1)<0.01), 'area under the NPV1 PDFs is not one')
+assert(any(abs(areaNPV1-1)<toll), 'area under the NPV1 PDFs is not one')
 
 % NPVL
-for n = 1 : obj.NmaxEvents
+for n = obj.NmaxEvents : -1 : 1
     areaNPVL(n) = trapz(obj.PDFlossNPV(:,1), obj.PDFlossNPV(:,n+1));
 end
-assert(any(abs(areaNPVL-1)<0.01), 'area under the NPVL PDFs is not one')
+assert(any(abs(areaNPVL-1)<toll), 'area under the NPVL PDFs is not one')
 
 % NPV(AL)|Nevents
-for n = 1 : obj.NmaxEvents
+for n = obj.NmaxEvents : -1 : 1
     areaNPVaggN(n) = trapz(obj.PDFaggLossNPVGivenNevents(:,1), ...
         obj.PDFaggLossNPVGivenNevents(:,n+1));
 end
-assert(any(abs(areaNPVaggN-1)<0.01), 'area under the NPV(AL)|Nevents PDFs is not one')
+assert(any(abs(areaNPVaggN-1)<toll), 'area under the NPV(AL)|Nevents PDFs is not one')
 
 % NPV(AL)
-    
 npvalArea = trapz(obj.PDFaggLossNPV(:,1), obj.PDFaggLossNPV(:,2));
-assert(abs(npvalArea-1)<0.02, 'area under the NPV(AL) PDF is not one')
+assert(abs(npvalArea-1)<toll, 'area under the NPV(AL) PDF is not one')
