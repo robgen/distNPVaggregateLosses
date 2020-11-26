@@ -43,8 +43,13 @@ for s = 1 : numel(Nsteps)
     plot(PDFaggLossNPV{s}(:,1), PDFaggLossNPV{s}(:,2), ...
         'LineWidth', 2, 'Color', colSteps(s,:))
 end
-
-axis([0 11 0 50000])
+axis([0 2.5 0 5000])
 xlabel('NPV(AL)')
 ylabel('p(NPV(AL))')
+set(gca, 'FontSize', 18)
+
+figure; hold on
+plot(Nsteps', areaNPVL, '-o')
+xlabel('Nsteps in loss definition')
+ylabel('Area p(NPV(AL))')
 set(gca, 'FontSize', 18)
