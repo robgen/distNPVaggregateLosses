@@ -127,29 +127,29 @@ classdef distNPVaggregateLosses
             npvL = self.LOSSdef;
             npv1 = self.PDFunitCashFlowNPV(:,1)';
             
-            NPVratioMatrix = repmat(npvL, 1, numel(npv1)) ./ ...
-                repmat(npv1, numel(npvL), 1);
+            NPVratioMatrix = repelem(npvL, 1, numel(npv1)) ./ ...
+                repelem(npv1, numel(npvL), 1);
             NPVratioMatrix(1,:) = NPVratioMatrix(1,:) + eps;
             
-            PDFlossInterp = interp1(self.PDFlossGivenOneEvent(:,1), ...
-                self.PDFlossGivenOneEvent(:,2), NPVratioMatrix);
-            
-            % the interpolation above will give NaN because
-            % PDFlossGivenOneEvent is not defined
-            PDFlossInterp(NPVratioMatrix>1) = 0;
+            PDFlossInterp = zeros(numel(npvL), numel(npv1));
+            PDFlossInterp(NPVratioMatrix<=1) = interp1(...
+                self.PDFlossGivenOneEvent(:,1), ...
+                self.PDFlossGivenOneEvent(:,2), ...
+                NPVratioMatrix(NPVratioMatrix<=1));            
+            % PDFlossGivenOneEvent is not defined for NPVratioMatrix>1
             
             absOneOverNPV1 = abs(1./npv1);
             
+            deltaNPV1mat = repelem(npv1(2:end)-npv1(1:end-1), numel(npvL), 1);
             for n = self.NmaxEvents : -1 : 1
-                PDFnpv1matrix = repmat(...
+                PDFnpv1matrix = repelem(...
                     self.PDFunitCashFlowNPV(:,n+1)', numel(npvL), 1);
                 
                 integrand = PDFnpv1matrix .* PDFlossInterp .* absOneOverNPV1;
                 
-                % maybe a performance improvement?
-                for row = size(integrand,1) : -1 : 1
-                    self.PDFlossNPV(row,n+1) = trapz(npv1, integrand(row,:));
-                end
+                self.PDFlossNPV(:,n+1) = sum( ...
+                    (integrand(:,2:end)+integrand(:,1:end-1)) .* ...
+                    deltaNPV1mat * 0.5, 2);
             end
             
             self.PDFlossNPV(:,1) = npvL;
@@ -381,38 +381,46 @@ classdef distNPVaggregateLosses
             end
             
             stepSize = FXsToConvolute(2,1) - FXsToConvolute(1,1);
+            len = size(FXsToConvolute,1);
             n = size(FXsToConvolute,2)-1;
             
-            convRecursCell = cell(n,1);
-            convRecursCell{1}(:,1) = FXsToConvolute(:,1);
-            convRecursCell{1}(:,2) = FXsToConvolute(:,2);
-            for ii = 1 : n-1
-                % X values
-                [dummy1, dummy2] = meshgrid(...
-                    convRecursCell{ii}(:,1), FXsToConvolute(:,1));
-                convRecursCell{ii+1}(:,1) = uniquetol(dummy1+dummy2, 10*eps);
-                % this line should give a vector with length length(u)+length(v)-1,
-                % where u and v are the operands of conv. This does not happen if i
-                % don't resample with equally spaced points. On top of this, I need a
-                % tolerance because I can never compare two "real" numbers, I can only
-                % compare them close
+            convRecurs = zeros(n*len-n+1, n+1);
+            for ii = 1 : n
+                convRecurs((ii-1)*len + ii-(ii-1)*2 : ii*len-(ii-1), 1) = ...
+                    convRecurs((ii-1)*len + ii-(ii-1)*2, 1) + FXsToConvolute(:,1);
+            end
+
+            convRecurs(:,2:size(FXsToConvolute,2)) = fastRecursiveConvolution(...
+                FXsToConvolute(:,2:end), stepSize);
+            
+            
+            function convRecurs = fastRecursiveConvolution(FXs, stepSize)
                 
-                % Y values
-                convRecursCell{ii+1}(:,2) = stepSize * conv(...
-                    convRecursCell{ii}(:,2), FXsToConvolute(:,ii+2));
+                maxOrder = size(FXs,2);
                 
-                clear dummy1 dummy2
+                % needed to zero-pad
+                NpointsFFT = length(FXs) + (maxOrder-1).*(length(FXs)-1);
+                
+                for order = maxOrder : -1 : 1
+                    fftFXs(:,order) = fft(FXs(:,order), NpointsFFT);
+                end
+                
+                convRecurs = zeros(NpointsFFT, size(FXs,2));
+                convRecurs(1:size(FXs,1),1) = FXs(:,1);
+                
+                previousProduct = fftFXs(:,1);
+                for order = 2 : maxOrder
+                    product = fftFXs(:,order) .* previousProduct;
+                    convRecurs(:,order) = stepSize^(order-1) * ifft(product);
+                    previousProduct = product;
+                end
+
             end
             
-            % create single matrix (more practical)
-            convRecurs(:,1) = convRecursCell{end}(:,1);
-            for ii = n : -1 : 1
-                convRecurs(1:size(convRecursCell{ii},1),ii+1) = ...
-                    convRecursCell{ii}(:,2);
-            end
+            
         end
         
-        
+
     end
 end
 

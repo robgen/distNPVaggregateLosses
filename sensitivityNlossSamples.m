@@ -17,6 +17,7 @@ Nsteps = 1+[10, 100, 200, 500, 1000, 2000, 10000]; %, 100000];
 
 for s = numel(Nsteps) : -1 : 1
     disp(s)
+    tic
     options.Setup.NlossSamples = Nsteps(s);
     sensStep = distNPVaggregateLosses(options);
     
@@ -26,6 +27,7 @@ for s = numel(Nsteps) : -1 : 1
     sensStep = sensStep.getCDFloss;
     sensStep = sensStep.getPDFlossNPV;
     sensStep = sensStep.getPDFaggregateLossNPV;
+    toc
     
     PDFaggLossNPV{s} = sensStep.PDFaggLossNPV;
     for n = sensStep.NmaxEvents : -1 : 1
