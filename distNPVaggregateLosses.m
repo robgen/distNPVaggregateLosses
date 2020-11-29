@@ -1,5 +1,5 @@
 classdef distNPVaggregateLosses
-    %distNPVaggregateLosses Summary of this class goes here
+    %distNPVaggregateLosses 
     %   
     
     properties
@@ -211,9 +211,12 @@ classdef distNPVaggregateLosses
                 self.CDFlossGivenDS(:,ds) = betacdf(...
                     self.LOSSdef, alfa(ds), beta(ds));
             end
-            % P(L<l|DS0) is a step function centered at zero
-            self.CDFlossGivenDS(2:end,1) = 1;
+
+            self.CDFlossGivenDS(:,1) = 1; % P(L<l|DS0) = 1 for any l
             
+            % P(L<l|DS0) is a step function centered at zero
+            %self.CDFlossGivenDS(2:end,1) = 1;
+            % this would be correct... but gives issues with PDFaggLossNPV
         end
         
         
@@ -420,7 +423,8 @@ classdef distNPVaggregateLosses
             
         end
         
-
+        
     end
+    
 end
 
