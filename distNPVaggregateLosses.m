@@ -28,6 +28,8 @@ classdef distNPVaggregateLosses
         PDFaggLossNPVGivenNevents
         PDFaggLossNPV
         CDFaggLossNPV
+        EAL
+        
     end
     
     methods
@@ -85,8 +87,13 @@ classdef distNPVaggregateLosses
             faultRate = self.parameters.Hazard.faultRate;
             timeHorizon = self.parameters.General.timeHorizon;
             
-            n = -1;
-            pNevents = 1;
+            % performance improvement needed
+            for n = 0 : 10
+                pNevents = ((faultRate*timeHorizon)^n * ...
+                    exp(-faultRate*timeHorizon)) ./ factorial(n);
+                self.PMFnumberEvents(n+1,2) = pNevents;
+            end
+            
             toll = 0.005;
             while pNevents > toll
                 n = n + 1;
@@ -108,7 +115,6 @@ classdef distNPVaggregateLosses
             self = getCDFlossGivenIM(self);
             self = getMAFim(self);
             
-            
             mafIMmatrix = repmat(self.MAFim(:,2), [1 numel(self.LOSSdef)]);
             self.CDFlossGivenOneEvent(:,1) = self.LOSSdef;
             self.CDFlossGivenOneEvent(:,2) = ...
@@ -117,6 +123,8 @@ classdef distNPVaggregateLosses
             
             self.PDFlossGivenOneEvent = self.numericalGradient(...
                 self.CDFlossGivenOneEvent);
+            
+            self = getEAL(self);
         end
         
         
@@ -173,6 +181,8 @@ classdef distNPVaggregateLosses
             self.CDFaggLossNPV = self.numericalIntegral(self.PDFaggLossNPV);
         end
         
+        
+        % function plotAllResults()
         
         %%% Micro functions
         function self = getFragilities(self)
@@ -271,6 +281,18 @@ classdef distNPVaggregateLosses
             end
         end
         
+        
+        function self = getEAL(self)
+            warning('You need to push the changes related to EAL calculation')
+            integrand = self.PDFlossGivenOneEvent(:,1) .* ...
+                self.PDFlossGivenOneEvent(:,2);
+            
+            self.EAL = trapz(self.PDFlossGivenOneEvent(:,1), ...
+                integrand);
+        end
+        
+        
+        % function self = applyInsurance(self)
         
         %%% Internal stuff
         function self = setVariableRanges(self)
@@ -424,6 +446,7 @@ classdef distNPVaggregateLosses
         end
         
         
+        % function TVaR = tailValueAtRisk(PDF, alpha)
     end
     
 end

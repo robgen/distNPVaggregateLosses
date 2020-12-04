@@ -101,6 +101,13 @@ xlabel('Loss, L')
 ylabel('p(L)')
 set(gca, 'FontSize', 18)
 
+% % eal check
+% meanLoss = VULNERABILITYbuilding([obj.IMdef, obj.fragilities], ...
+%     options.Vulnerability.damgeLossRatios, 'NOplot');
+% 
+% EALtest = EALcalculator(meanLoss, ...
+%     options.Hazard.hazCurve, 'plot');
+
 %% PDF loss NPV
 
 obj = obj.getPDFlossNPV;
