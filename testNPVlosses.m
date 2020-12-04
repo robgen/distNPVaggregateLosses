@@ -11,10 +11,13 @@ options.Vulnerability.CoVdlr = [ 0 1 0.4 0.3 0.05 ];
 options.Hazard.faultRate = 0.08;
 options.Hazard.hazCurve = [0.166427989012818,0.0332146240000000;0.217582434028613,0.0198850450000000;0.258529430931683,0.0138629440000000;0.303930770035728,0.00988592600000000;0.354443451456181,0.00713349900000000;0.412206673094016,0.00496922700000000;0.565248464301760,0.00210721000000000;0.695119133694674,0.00102586600000000;0.846507595616605,0.000404054000000000];
 
+options.Insurance.deductible = 0.02;
+options.Insurance.cover = 0;
+
 options.Setup.NlossSamples = 501;
 obj = distNPVaggregateLosses(options);
 
-%% interarrival times
+%% Interarrival times
 
 obj = obj.getPDFinterarrivalTime;
 
@@ -96,6 +99,8 @@ set(gca, 'FontSize', 18)
 figure; hold on
 plot(obj.PDFlossGivenOneEvent(:,1), obj.PDFlossGivenOneEvent(:,2), ...
     'LineWidth', 2)
+plot(obj.PDFuninsuredGivenOneEvent(:,1), ...
+    obj.PDFuninsuredGivenOneEvent(:,2), 'LineWidth', 2)
 axis([0 1 0 10])
 xlabel('Loss, L')
 ylabel('p(L)')
@@ -107,6 +112,8 @@ set(gca, 'FontSize', 18)
 % 
 % EALtest = EALcalculator(meanLoss, ...
 %     options.Hazard.hazCurve, 'plot');
+
+TVaRtest = obj.tailValueAtRisk(obj.PDFlossGivenOneEvent, 0);
 
 %% PDF loss NPV
 
@@ -125,7 +132,7 @@ set(gca, 'FontSize', 18)
 
 figure; hold on
 for n = 1 : obj.NmaxEvents
-    plot(obj.PDFlossNPV(:,1), obj.PDFlossNPV(:,n+1), ...
+    plot(obj.PDFuninsuredNPV(:,1), obj.PDFuninsuredNPV(:,n+1), ...
         'LineWidth', 2, 'Color', colEvents(n,:))
 end
 axis([0 0.3 0 10])
@@ -136,8 +143,8 @@ set(gca, 'FontSize', 18)
 
 figure; hold on
 for n = 1 : obj.NmaxEvents
-    plot(obj.PDFlossNPV(:,1), ...
-        cumtrapz(obj.PDFlossNPV(:,1),obj.PDFlossNPV(:,n+1)), ...
+    plot(obj.PDFuninsuredNPV(:,1), ...
+        cumtrapz(obj.PDFuninsuredNPV(:,1),obj.PDFuninsuredNPV(:,n+1)), ...
         'LineWidth', 2, 'Color', colEvents(n,:))
 end
 legend(strcat('event ', num2str(nev(:))), 'Location', 'NorthEast')
@@ -151,18 +158,27 @@ obj = obj.getPDFaggregateLossNPV;
 
 figure; hold on
 for n = 1 : obj.NmaxEvents
-    plot(obj.PDFaggLossNPVGivenNevents(:,1), ...
-        obj.PDFaggLossNPVGivenNevents(:,n+1), ...
+    plot(obj.PDFaggUninsuredNPVGivenNevents(:,1), ...
+        obj.PDFaggUninsuredNPVGivenNevents(:,n+1), ...
         'LineWidth', 2, 'Color', colEvents(n,:))
 end
-axis([0 2.5 0 obj.PDFaggLossNPV(20,2)])
+axis([0 2.5 0 obj.PDFaggUninsuredNPV(20,2)])
 legend(strcat('event ', num2str(nev(:))), 'Location', 'NorthEast')
 xlabel('NPV(AL)')
 ylabel('p(NPV(AL))')
 set(gca, 'FontSize', 18)
 
 figure; hold on
-plot(obj.PDFaggLossNPV(:,1), obj.PDFaggLossNPV(:,2), ...
+plot(obj.PDFaggUninsuredNPV(:,1), obj.PDFaggUninsuredNPV(:,2), ...
+     'LineWidth', 2)
+ 
+axis([0 2.5 0 0.5])
+xlabel('NPV(AL)')
+ylabel('p(NPV(AL))')
+set(gca, 'FontSize', 18)
+
+figure; hold on
+plot(obj.CDFaggUninsuredNPV(:,1), obj.CDFaggUninsuredNPV(:,2), ...
      'LineWidth', 2)
  
 axis([0 2.5 0 0.5])
@@ -171,6 +187,8 @@ ylabel('p(NPV(AL))')
 set(gca, 'FontSize', 18)
 
 %% Test PDF areas
+
+%obj = obj.correctDeltaFunctions;
 
 toll = 0.01;
 
@@ -224,11 +242,11 @@ assert(any(abs(areaNPVL-1)<toll), 'area under the NPVL PDFs is not one')
 
 % NPV(AL)|Nevents
 for n = obj.NmaxEvents : -1 : 1
-    areaNPVaggN(n) = trapz(obj.PDFaggLossNPVGivenNevents(:,1), ...
-        obj.PDFaggLossNPVGivenNevents(:,n+1));
+    areaNPVaggN(n) = trapz(obj.PDFaggUninsuredNPVGivenNevents(:,1), ...
+        obj.PDFaggUninsuredNPVGivenNevents(:,n+1));
 end
 assert(any(abs(areaNPVaggN-1)<toll), 'area under the NPV(AL)|Nevents PDFs is not one')
 
 % NPV(AL)
-npvalArea = trapz(obj.PDFaggLossNPV(:,1), obj.PDFaggLossNPV(:,2));
+npvalArea = trapz(obj.PDFaggUninsuredNPV(:,1), obj.PDFaggUninsuredNPV(:,2));
 assert(abs(npvalArea-1)<toll, 'area under the NPV(AL) PDF is not one')

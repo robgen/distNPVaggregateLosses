@@ -11,24 +11,31 @@ classdef distNPVaggregateLosses
         LOSSdef
         fragilities
         
-        NmaxEvents
         PDFinterarrivalTime
         PDFarrivalTime
         PMFnumberEvents
+        NmaxEvents
+        
         PMFds
         CDFlossGivenDS
         CDFlossGivenIM
         CDFlossGivenOneEvent
         PDFlossGivenOneEvent
+        
+        PDFuninsuredGivenOneEvent
+        
         MAFim
         hazCurveResampled
-        lastStepIM
+        lastStepIM % this should be private
+        
         PDFunitCashFlowNPV
-        PDFlossNPV
-        PDFaggLossNPVGivenNevents
-        PDFaggLossNPV
-        CDFaggLossNPV
+        PDFuninsuredNPV
+        PDFaggUninsuredNPVGivenNevents
+        PDFaggUninsuredNPV
+        CDFaggUninsuredNPV
+        
         EAL
+        EALu
         
     end
     
@@ -124,7 +131,9 @@ classdef distNPVaggregateLosses
             self.PDFlossGivenOneEvent = self.numericalGradient(...
                 self.CDFlossGivenOneEvent);
             
+            self = self.applyInsurance;
             self = getEAL(self);
+            
         end
         
         
@@ -141,10 +150,10 @@ classdef distNPVaggregateLosses
             
             PDFlossInterp = zeros(numel(npvL), numel(npv1));
             PDFlossInterp(NPVratioMatrix<=1) = interp1(...
-                self.PDFlossGivenOneEvent(:,1), ...
-                self.PDFlossGivenOneEvent(:,2), ...
+                self.PDFuninsuredGivenOneEvent(:,1), ...
+                self.PDFuninsuredGivenOneEvent(:,2), ...
                 NPVratioMatrix(NPVratioMatrix<=1));            
-            % PDFlossGivenOneEvent is not defined for NPVratioMatrix>1
+            % PDFuninsuredGivenOneEvent is not defined for NPVratioMatrix>1
             
             absOneOverNPV1 = abs(1./npv1);
             
@@ -155,34 +164,38 @@ classdef distNPVaggregateLosses
                 
                 integrand = PDFnpv1matrix .* PDFlossInterp .* absOneOverNPV1;
                 
-                self.PDFlossNPV(:,n+1) = sum( ...
+                self.PDFuninsuredNPV(:,n+1) = sum( ...
                     (integrand(:,2:end)+integrand(:,1:end-1)) .* ...
                     deltaNPV1mat * 0.5, 2);
             end
             
-            self.PDFlossNPV(:,1) = npvL;
+            self.PDFuninsuredNPV(:,1) = npvL;
             
         end
         
         
         function self = getPDFaggregateLossNPV(self)
             
-            self.PDFaggLossNPVGivenNevents = self.recursiveConvolution(...
-                self.PDFlossNPV);
+            self.PDFaggUninsuredNPVGivenNevents = self.recursiveConvolution(...
+                self.PDFuninsuredNPV);
             
             pNevMatrix = self.PMFnumberEvents(:,2)' + ...
-                zeros(size(self.PDFaggLossNPVGivenNevents,1),1);
+                zeros(size(self.PDFaggUninsuredNPVGivenNevents,1),1);
             
-            self.PDFaggLossNPV(:,1) = self.PDFaggLossNPVGivenNevents(:,1);
-            self.PDFaggLossNPV(:,2) = sum(pNevMatrix(:,2:end) .* ...
-                self.PDFaggLossNPVGivenNevents(:,2:end), 2);
+            self.PDFaggUninsuredNPV(:,1) = self.PDFaggUninsuredNPVGivenNevents(:,1);
+            self.PDFaggUninsuredNPV(:,2) = sum(pNevMatrix(:,2:end) .* ...
+                self.PDFaggUninsuredNPVGivenNevents(:,2:end), 2);
             % note: P(L>l|0events) = 0, for each l
             
-            self.CDFaggLossNPV = self.numericalIntegral(self.PDFaggLossNPV);
+            self.CDFaggUninsuredNPV = self.numericalIntegral(self.PDFaggUninsuredNPV);
         end
         
         
+        % function self = correctDeltaFunctions(self)
+
+        
         % function plotAllResults()
+        
         
         %%% Micro functions
         function self = getFragilities(self)
@@ -226,7 +239,7 @@ classdef distNPVaggregateLosses
             
             % P(L<l|DS0) is a step function centered at zero
             %self.CDFlossGivenDS(2:end,1) = 1;
-            % this would be correct... but gives issues with PDFaggLossNPV
+            % this would be correct... but gives issues with PDFaggUninsuredNPV
         end
         
         
@@ -237,7 +250,7 @@ classdef distNPVaggregateLosses
                 CDFlossDSmatrix(im,:,:) = self.CDFlossGivenDS;
             end
             
-            for l = numel(self.LOSSdef):-1:1
+            for l = numel(self.LOSSdef) : -1 : 1
                 probDS3d(:,l,:) = self.PMFds;
             end
             %%% needs performance improvement
@@ -283,7 +296,6 @@ classdef distNPVaggregateLosses
         
         
         function self = getEAL(self)
-            warning('You need to push the changes related to EAL calculation')
             integrand = self.PDFlossGivenOneEvent(:,1) .* ...
                 self.PDFlossGivenOneEvent(:,2);
             
@@ -292,7 +304,28 @@ classdef distNPVaggregateLosses
         end
         
         
-        % function self = applyInsurance(self)
+        function self = applyInsurance(self)
+            
+            d = self.parameters.Insurance.deductible;
+            c = self.parameters.Insurance.cover;
+            %coI = self.parameters.Insurance.coinsurance; % should be included
+            
+            if c ~= 0
+                self.PDFuninsuredGivenOneEvent(:,1) = self.PDFlossGivenOneEvent(:,1);
+                
+                zeroPayout = find(self.PDFuninsuredGivenOneEvent(:,1)<d);
+                lastZeroPayout = zeroPayout(end);
+                maxPayout = find(self.PDFuninsuredGivenOneEvent(:,1)>c);
+                
+                self.PDFuninsuredGivenOneEvent(zeroPayout,2) = ...
+                    self.PDFlossGivenOneEvent(zeroPayout,2);
+                self.PDFuninsuredGivenOneEvent(...
+                    lastZeroPayout+1:lastZeroPayout+numel(maxPayout),2) = ...
+                    self.PDFlossGivenOneEvent(maxPayout,2);
+            else
+                self.PDFuninsuredGivenOneEvent = self.PDFlossGivenOneEvent;
+            end
+        end
         
         %%% Internal stuff
         function self = setVariableRanges(self)
@@ -313,7 +346,7 @@ classdef distNPVaggregateLosses
             % setAllParameters deals with the optional parameters
             
             % build basic parameters
-            macroFieldsPar = {'General', 'Vulnerability', 'Hazard', 'Setup'};
+            macroFieldsPar = {'General', 'Vulnerability', 'Hazard', 'Insurance', 'Setup'};
             
             microFieldsPar{1} = {'timeHorizon', 'intRate' };
             microFieldsParVals{1} = {50, 0.02};
@@ -324,8 +357,11 @@ classdef distNPVaggregateLosses
             microFieldsPar{3} = {'hazCurve', 'faultRate' };
             microFieldsParVals{3} = {[0.166427989012818,0.0332146240000000;0.217582434028613,0.0198850450000000;0.258529430931683,0.0138629440000000;0.303930770035728,0.00988592600000000;0.354443451456181,0.00713349900000000;0.412206673094016,0.00496922700000000;0.565248464301760,0.00210721000000000;0.695119133694674,0.00102586600000000;0.846507595616605,0.000404054000000000] , 0.05};
             
-            microFieldsPar{4} = {'NlossSamples', 'IMstep' };
-            microFieldsParVals{4} = {501, 0.005};
+            microFieldsPar{4} = {'deductible', 'cover', 'coinsurance' };
+            microFieldsParVals{4} = {0, 0, 1};
+            
+            microFieldsPar{5} = {'NlossSamples', 'IMstep' };
+            microFieldsParVals{5} = {501, 0.005};
             
             for F = 1 : numel(macroFieldsPar)
                 for f = 1 : numel(microFieldsPar{F})
@@ -414,7 +450,7 @@ classdef distNPVaggregateLosses
                 convRecurs((ii-1)*len + ii-(ii-1)*2 : ii*len-(ii-1), 1) = ...
                     convRecurs((ii-1)*len + ii-(ii-1)*2, 1) + FXsToConvolute(:,1);
             end
-
+            
             convRecurs(:,2:size(FXsToConvolute,2)) = fastRecursiveConvolution(...
                 FXsToConvolute(:,2:end), stepSize);
             
@@ -439,14 +475,41 @@ classdef distNPVaggregateLosses
                     convRecurs(:,order) = stepSize^(order-1) * ifft(product);
                     previousProduct = product;
                 end
-
+                
             end
             
             
         end
         
         
-        % function TVaR = tailValueAtRisk(PDF, alpha)
+        function [uninsured, insured] = applyPayout(groundUp, ded, cov, coI)
+            
+            insured = zeros(size(groundUp));
+            
+            insured(groundUp>ded & groundUp<cov) = coI * ...
+                (groundUp((groundUp>ded & groundUp<cov)) - ded);
+            insured(groundUp>=cov) = coI * max(cov - ded,0);
+            % the max fx is needed to handle the impossible cases of cover<deductible
+            
+            uninsured = groundUp - insured;
+        end
+        
+        
+        function TVaR = tailValueAtRisk(PDF, alpha)
+            
+            CDF(:,1) = PDF(:,1);
+            CDF(:,2) = cumtrapz(PDF(:,1), PDF(:,2));
+            
+            % Use interp rather than find for accuracy
+            
+            temp = find(CDF(:,2) <= 1 - alpha );
+            indVaR = temp(1);
+            VaR = CDF(indVaR(1),1);
+            
+            TVaR = VaR + 1/(1-alpha) * trapz(...
+                PDF(indVaR:end,1), PDF(indVaR:end,1).*PDF(indVaR:end,2));
+            
+        end
     end
     
 end
