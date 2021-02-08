@@ -1,7 +1,8 @@
 %% Input (as built with Hazard L'Aquila)
 
 options.General.timeHorizon = 50;
-options.General.intRate = 0.02;
+options.General.intRate = 0.03;
+options.General.confidenceTVaR = 0;
 
 options.Vulnerability.fragMedians = [0.165879930589601,0.322526111223683,0.340170312466871,0.460814512917018];
 options.Vulnerability.fragDispersions = [0.436863904039988,0.442107162939676,0.442742956715563,0.447169859279770];
@@ -11,10 +12,12 @@ options.Vulnerability.CoVdlr = [ 0 1 0.4 0.3 0.05 ];
 options.Hazard.faultRate = 0.08;
 options.Hazard.hazCurve = [0.166427989012818,0.0332146240000000;0.217582434028613,0.0198850450000000;0.258529430931683,0.0138629440000000;0.303930770035728,0.00988592600000000;0.354443451456181,0.00713349900000000;0.412206673094016,0.00496922700000000;0.565248464301760,0.00210721000000000;0.695119133694674,0.00102586600000000;0.846507595616605,0.000404054000000000];
 
-options.Insurance.deductible = 0.02;
-options.Insurance.cover = 0;
+options.Insurance.deductible = 0.05;
+options.Insurance.cover = 0.20;
 
-options.Setup.NlossSamples = 501;
+options.Setup.NlossSamples = 1001;
+options.Setup.MCsamples = 100000;
+
 obj = distNPVaggregateLosses(options);
 
 %% Interarrival times
@@ -68,7 +71,7 @@ set(gca, 'FontSize', 18)
 
 obj = obj.getCDFloss;
 
-figure; hold on
+figure('Position', [284   527   560   420]); hold on
 plot(obj.LOSSdef, obj.CDFlossGivenDS, 'LineWidth', 2)
 
 DSs = 0 : 4;
@@ -78,7 +81,7 @@ ylabel('P(LR\leqlr|DS)')
 set(gca, 'FontSize', 18)
 
 
-figure; hold on
+figure('Position', [845   527   560   420]); hold on
 percentiles = [5 50 95];
 for p = 1 : numel(percentiles)
     plot(obj.IMdef, prctile(obj.CDFlossGivenIM, percentiles(p), 2), ...
@@ -88,15 +91,17 @@ legend('5%', 'Median', '95%', 'Mean')
 xlabel('IM'); ylabel('Loss ratio [-]');
 set(gca, 'FontSize', 18)
 
-figure; hold on
+figure('Position', [284    27   560   420]); hold on
 plot(obj.CDFlossGivenOneEvent(:,1), obj.CDFlossGivenOneEvent(:,2), ...
     'LineWidth', 2)
+plot(obj.CDFuninsuredGivenOneEvent(:,1), ...
+    obj.CDFuninsuredGivenOneEvent(:,2), 'LineWidth', 2)
 xlabel('Loss, l')
 ylabel('P(L\leql)')
 set(gca, 'FontSize', 18)
 
 
-figure; hold on
+figure('Position', [845    27   560   420]); hold on
 plot(obj.PDFlossGivenOneEvent(:,1), obj.PDFlossGivenOneEvent(:,2), ...
     'LineWidth', 2)
 plot(obj.PDFuninsuredGivenOneEvent(:,1), ...
@@ -119,7 +124,8 @@ TVaRtest = obj.tailValueAtRisk(obj.PDFlossGivenOneEvent, 0);
 
 obj = obj.getPDFlossNPV;
 
-figure; hold on
+
+figure('Position', [279   527   560   420]); hold on
 for n = 1 : obj.NmaxEvents
     plot(obj.PDFunitCashFlowNPV(:,1), obj.PDFunitCashFlowNPV(:,n+1), ...
         'LineWidth', 2, 'Color', colEvents(n,:))
@@ -129,8 +135,7 @@ xlabel('NPV unit cash flow, NPV^{(1)}')
 ylabel('p(NPV^{(1)})')
 set(gca, 'FontSize', 18)
 
-
-figure; hold on
+figure('Position', [840   527   560   420]); hold on
 for n = 1 : obj.NmaxEvents
     plot(obj.PDFuninsuredNPV(:,1), obj.PDFuninsuredNPV(:,n+1), ...
         'LineWidth', 2, 'Color', colEvents(n,:))
@@ -141,7 +146,7 @@ xlabel('NPV loss, NPV(L)')
 ylabel('p(NPV(L))')
 set(gca, 'FontSize', 18)
 
-figure; hold on
+figure('Position', [560    27   560   420]); hold on
 for n = 1 : obj.NmaxEvents
     plot(obj.PDFuninsuredNPV(:,1), ...
         cumtrapz(obj.PDFuninsuredNPV(:,1),obj.PDFuninsuredNPV(:,n+1)), ...
@@ -171,8 +176,6 @@ set(gca, 'FontSize', 18)
 figure; hold on
 plot(obj.PDFaggUninsuredNPV(:,1), obj.PDFaggUninsuredNPV(:,2), ...
      'LineWidth', 2)
- 
-axis([0 2.5 0 0.5])
 xlabel('NPV(AL)')
 ylabel('p(NPV(AL))')
 set(gca, 'FontSize', 18)
@@ -180,17 +183,26 @@ set(gca, 'FontSize', 18)
 figure; hold on
 plot(obj.CDFaggUninsuredNPV(:,1), obj.CDFaggUninsuredNPV(:,2), ...
      'LineWidth', 2)
- 
-axis([0 2.5 0 0.5])
+xlabel('NPV(AL)')
+ylabel('p(NPV(AL))')
+set(gca, 'FontSize', 18)
+
+%% Compare with Montecarlo
+
+obj = obj.monteCarloPDFaggregateLossNPV;
+
+figure; hold on
+h = histogram(obj.NPVaggUninsuredMC, 'Normalization', 'pdf');
+plot(obj.PDFaggUninsuredNPV(:,1), obj.PDFaggUninsuredNPV(:,2), ...
+     'LineWidth', 2)
+axis([0 2.5 0 1.5])
 xlabel('NPV(AL)')
 ylabel('p(NPV(AL))')
 set(gca, 'FontSize', 18)
 
 %% Test PDF areas
 
-%obj = obj.correctDeltaFunctions;
-
-toll = 0.01;
+toll = 0.03;
 
 % interarrival
 totA = trapz(obj.PDFinterarrivalTime(:,1), obj.PDFinterarrivalTime(:,2));
@@ -236,7 +248,7 @@ assert(any(abs(areaNPV1-1)<toll), 'area under the NPV1 PDFs is not one')
 
 % NPVL
 for n = obj.NmaxEvents : -1 : 1
-    areaNPVL(n) = trapz(obj.PDFlossNPV(:,1), obj.PDFlossNPV(:,n+1));
+    areaNPVL(n) = trapz(obj.PDFuninsuredNPV(:,1), obj.PDFuninsuredNPV(:,n+1));
 end
 assert(any(abs(areaNPVL-1)<toll), 'area under the NPVL PDFs is not one')
 
