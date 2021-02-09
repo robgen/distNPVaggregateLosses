@@ -271,21 +271,20 @@ classdef distNPVaggregateLosses
         
         function self = monteCarloPDFaggregateLossNPV(self)
             
-            warning('payout function; poisson function; CDF of uninsured losses')
             for n = self.parameters.Setup.MCsamples : -1 : 1
-                timeSim = poissonProcess(...
+                timeSim = self.poissonProcess(...
                     self.parameters.Hazard.faultRate, ...
                     self.parameters.General.timeHorizon, 'n');
                 Nevents(n,1) = numel(timeSim);
                 
-                top = 1-1000*eps;
-                filteredLossCDF = [ 0, 0; ...
+                top = self.CDFlossGivenOneEvent(end,2)-1000*eps;
+                filteredLossCDF = [ ...
                     self.CDFlossGivenOneEvent(self.CDFlossGivenOneEvent(:,2)<top,:); ...
                     self.CDFlossGivenOneEvent(end,:) ];
                 lossSim = interp1(filteredLossCDF(:,2), ...
                     filteredLossCDF(:,1), rand(Nevents(n),1) );
                 
-                [uninsuredLossSim, insuredLossSim] = insurancePayout(...
+                [uninsuredLossSim, insuredLossSim] = self.applyPayout(...
                     lossSim, self.parameters.Insurance.deductible, ...
                     self.parameters.Insurance.cover, ...
                     self.parameters.Insurance.coinsurance);
@@ -617,7 +616,6 @@ classdef distNPVaggregateLosses
         
         
         function [uninsured, insured] = applyPayout(groundUp, ded, cov, coI)
-            % for now this method is NOT used
             
             insured = zeros(size(groundUp));
             
@@ -641,6 +639,19 @@ classdef distNPVaggregateLosses
             TVaR = 1/(1-alpha) * trapz(...
                 CDF(VaRalphaToOne,2), CDF(VaRalphaToOne,1));
             
+        end
+        
+        
+        function t = poissonProcess(lambda, Nyears, drawAtNyears)
+            if nargin < 3; drawAtNyears = 'y'; end
+            
+            % 2*Nyears to be sure to reach Nyears in the final sum
+            dt = random('Exponential', 1/lambda, 2*Nyears, 1);
+            t = cumsum(dt);
+            
+            t(t>Nyears) = [];
+            
+            if strcmp(drawAtNyears, 'y'); t(end+1,1) = Nyears; end
         end
     end
     
