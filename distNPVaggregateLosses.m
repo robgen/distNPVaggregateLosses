@@ -136,14 +136,9 @@ classdef distNPVaggregateLosses
             self.PDFlossGivenOneEvent = self.numericalGradient(...
                 self.CDFlossGivenOneEvent);
             
-%             warning('is normalisation needed? or is the delta enough?')
-%             % normalise PDF (because I don't consider the mass probability at zero)
-%             self.PDFlossGivenOneEvent(:,2) = self.PDFlossGivenOneEvent(:,2) ./ ...
-%                 trapz(self.PDFlossGivenOneEvent(:,1), self.PDFlossGivenOneEvent(:,2));
-            
-            self = self.applyInsurance;
+            self = self.groundUpToUninsuredPDF;
             self.EAL = self.tailValueAtRisk(self.CDFlossGivenOneEvent, 0);
-            %self.EALu = self.tailValueAtRisk(self.CDFuninsuredGivenOneEvent, 0);
+            self.EALu = self.tailValueAtRisk(self.CDFuninsuredGivenOneEvent, 0);
         end
         
         
@@ -228,7 +223,7 @@ classdef distNPVaggregateLosses
             
             % the stepsize for the interpolation must be smaller than the
             % definition of the PDF(loss)
-            Nsteps = (self.parameters.Setup.NlossSamples-1)*100 + 1;
+            Nsteps = (self.parameters.Setup.NlossSamples-1)*200 + 1;
             z = linspace(eps, 1, Nsteps)';
             
             if self.parameters.General.intRate == 0
@@ -241,12 +236,11 @@ classdef distNPVaggregateLosses
             else
                 warning('insert method for the product distribution')
                 for n = self.NmaxEvents : -1 : 1
-                    
-                    testPDF = productDistribution(self.PDFunitCashFlowNPV(:,[1,n+1]), ...
+                    testPDF = productDistribution(...
+                        self.PDFunitCashFlowNPV(:,[1,n+1]), ...
                         self.PDFuninsuredGivenOneEvent, z);
                     
                     self.PDFuninsuredNPV(:,n+1) = testPDF(:,2);
-                    
                 end
                 
                 self.PDFuninsuredNPV(:,1) = z;
@@ -378,7 +372,6 @@ classdef distNPVaggregateLosses
             end
             
             if self.parameters.Hazard.hazCurve(1,1) ~= 0
-                warning('check this once')
                 extendedHazCurve = [0 self.parameters.Hazard.faultRate; ...
                     self.parameters.Hazard.hazCurve];
             else
@@ -412,7 +405,7 @@ classdef distNPVaggregateLosses
         end
         
         
-        function self = applyInsurance(self)
+        function self = groundUpToUninsuredPDF(self)
             
             d = self.parameters.Insurance.deductible;
             c = self.parameters.Insurance.cover;
@@ -423,7 +416,10 @@ classdef distNPVaggregateLosses
                 
                 zeroPayout = find(self.PDFuninsuredGivenOneEvent(:,1)<=d+eps);
                 lastZeroPayout = zeroPayout(end);
-                maxPayout = find(self.PDFuninsuredGivenOneEvent(:,1)>c);
+                linearPayout = find(self.PDFuninsuredGivenOneEvent(:,1)>d+eps & ...
+                    self.PDFuninsuredGivenOneEvent(:,1)<c);
+
+                maxPayout = find(self.PDFuninsuredGivenOneEvent(:,1)>=c);
                 
                 self.PDFuninsuredGivenOneEvent(zeroPayout,2) = ...
                     self.PDFlossGivenOneEvent(zeroPayout,2);
@@ -431,13 +427,27 @@ classdef distNPVaggregateLosses
                     lastZeroPayout+1:lastZeroPayout+numel(maxPayout),2) = ...
                     self.PDFlossGivenOneEvent(maxPayout,2);
                 
-%                 % renormalise because the probability space is now
-%                 % restricted (e.g. a loss of 100% is impossible)
-%                 self.PDFuninsuredGivenOneEvent(:,2) = ...
-%                     self.PDFuninsuredGivenOneEvent(:,2) / ...
-%                     trapz(self.PDFuninsuredGivenOneEvent(:,1), ...
-%                     self.PDFuninsuredGivenOneEvent(:,2));
+                % add delta function at uninsuredLoss = D (Triangular approx)
+                probLossBetweenDandC = trapz(...
+                    self.PDFlossGivenOneEvent(linearPayout,1), ...
+                    self.PDFlossGivenOneEvent(linearPayout,2));
                 
+                widthDelta = 4; % steps (MUST BE EVEN)
+                stepSize = (self.PDFlossGivenOneEvent(2,1) - ...
+                    self.PDFlossGivenOneEvent(1,1));
+                heightDelta = 2 * probLossBetweenDandC / ...
+                    (widthDelta * stepSize);
+                
+                deltaFx(:,1) = linspace(0, 2, widthDelta+1);
+                deltaFx(:,2) = interp1([0 1 2], ...
+                    [0 heightDelta 0], deltaFx(:,1));
+                
+                stepsForDelta = zeroPayout(end)-widthDelta/2 : ...
+                    zeroPayout(end)+widthDelta/2;
+                self.PDFuninsuredGivenOneEvent(stepsForDelta,2) = ...
+                    self.PDFuninsuredGivenOneEvent(stepsForDelta,2) + deltaFx(:,2);
+                
+                % calculate CDF
                 self.CDFuninsuredGivenOneEvent(:,1) = ...
                     self.PDFuninsuredGivenOneEvent(:,1);
                 self.CDFuninsuredGivenOneEvent(:,2) = cumtrapz(...
@@ -447,7 +457,9 @@ classdef distNPVaggregateLosses
                 self.PDFuninsuredGivenOneEvent = self.PDFlossGivenOneEvent;
                 self.CDFuninsuredGivenOneEvent = self.CDFlossGivenOneEvent;
             end
+            
         end
+        
         
         %%% Internal stuff
         function self = setVariableRanges(self)
@@ -605,6 +617,7 @@ classdef distNPVaggregateLosses
         
         
         function [uninsured, insured] = applyPayout(groundUp, ded, cov, coI)
+            % for now this method is NOT used
             
             insured = zeros(size(groundUp));
             

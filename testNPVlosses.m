@@ -15,7 +15,7 @@ options.Hazard.hazCurve = [0.166427989012818,0.0332146240000000;0.21758243402861
 options.Insurance.deductible = 0.05;
 options.Insurance.cover = 0.20;
 
-options.Setup.NlossSamples = 1001;
+options.Setup.NlossSamples = 201;
 options.Setup.MCsamples = 100000;
 
 obj = distNPVaggregateLosses(options);
@@ -67,7 +67,7 @@ xlabel('Arrival time \tau')
 ylabel('p(\tau)')
 set(gca, 'FontSize', 18)
 
-%% CDF of one loss given one event
+%% CDF of loss given one event
 
 obj = obj.getCDFloss;
 
@@ -240,11 +240,13 @@ lossArea = trapz(obj.PDFlossGivenOneEvent(:,1), obj.PDFlossGivenOneEvent(:,2));
 assert(abs(lossArea-1)<toll, 'area under the loss|1ev PDF is not one')
 
 % NPV1
-for n = obj.NmaxEvents : -1 : 1
-    areaNPV1(n) = trapz(obj.PDFunitCashFlowNPV(:,1), ...
-        obj.PDFunitCashFlowNPV(:,n+1));
+if options.General.intRate ~= 0
+    for n = obj.NmaxEvents : -1 : 1
+        areaNPV1(n) = trapz(obj.PDFunitCashFlowNPV(:,1), ...
+            obj.PDFunitCashFlowNPV(:,n+1));
+    end
+    assert(any(abs(areaNPV1-1)<toll), 'area under the NPV1 PDFs is not one')
 end
-assert(any(abs(areaNPV1-1)<toll), 'area under the NPV1 PDFs is not one')
 
 % NPVL
 for n = obj.NmaxEvents : -1 : 1
