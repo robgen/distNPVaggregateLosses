@@ -218,6 +218,7 @@ classdef distNPVaggregateLosses
         
         
         function self = getPDFlossNPV(self)
+            % slower but more reliable method
             
             self = getPDFunitCashFlowNPV(self);
             
@@ -234,11 +235,11 @@ classdef distNPVaggregateLosses
                 self.PDFuninsuredNPV(:,2:self.NmaxEvents+1) = repmat(...
                     PDFuninsuredGivenOneEventInterp, 1, self.NmaxEvents);
             else
-                warning('insert method for the product distribution')
+                pdf2interp = [];
                 for n = self.NmaxEvents : -1 : 1
-                    testPDF = productDistribution(...
+                    [testPDF, pdf2interp] = self.productDistribution(...
                         self.PDFunitCashFlowNPV(:,[1,n+1]), ...
-                        self.PDFuninsuredGivenOneEvent, z);
+                        self.PDFuninsuredGivenOneEvent, z, pdf2interp);
                     
                     self.PDFuninsuredNPV(:,n+1) = testPDF(:,2);
                 end
@@ -494,7 +495,7 @@ classdef distNPVaggregateLosses
             microFieldsParVals{4} = {0, 0, 1};
             
             microFieldsPar{5} = {'NlossSamples', 'IMstep', 'MCsamples' };
-            microFieldsParVals{5} = {101, 0.005, 10000};
+            microFieldsParVals{5} = {201, 0.005, 10000};
             
             for F = 1 : numel(macroFieldsPar)
                 for f = 1 : numel(microFieldsPar{F})
@@ -653,6 +654,36 @@ classdef distNPVaggregateLosses
             
             if strcmp(drawAtNyears, 'y'); t(end+1,1) = Nyears; end
         end
+        
+        
+        function [pdfProduct, pdf2interp] = productDistribution(...
+                pdf1, pdf2, z, pdf2interp)
+            
+            x1 = pdf1(:,1)';
+            
+            zOverX1Matrix = repelem(z, 1, numel(x1)) ./ ...
+                repelem(x1, numel(z), 1);
+            zOverX1Matrix(1,:) = zOverX1Matrix(1,:) + eps;
+            
+            if isempty(pdf2interp)
+                pdf2Interpolant = griddedInterpolant(pdf2(:,1), pdf2(:,2));
+                pdf2interp = pdf2Interpolant(zOverX1Matrix);
+                pdf2interp(isnan(pdf2interp)) = 0;
+            end
+            
+            absOneOverX1 = abs(1./x1);
+            
+            deltaX1mat = repelem(x1(2:end)-x1(1:end-1), numel(z), 1);
+            
+            PDF1matrix = repelem(pdf1(:,2)', numel(z), 1);
+            
+            integrand = PDF1matrix .* pdf2interp .* absOneOverX1;
+            
+            pdfProduct(:,1) = z;
+            pdfProduct(:,2) = sum( ...
+                (integrand(:,2:end)+integrand(:,1:end-1)) .* deltaX1mat * 0.5, 2);
+        end
+        
     end
     
 end

@@ -15,7 +15,7 @@ options.Hazard.hazCurve = [0.166427989012818,0.0332146240000000;0.21758243402861
 options.Insurance.deductible = 0.05;
 options.Insurance.cover = 0.3;
 
-options.Setup.NlossSamples = 201;
+options.Setup.NlossSamples = 1001;
 options.Setup.MCsamples = 100000;
 
 obj = distNPVaggregateLosses(options);
@@ -122,8 +122,9 @@ TVaRtest = obj.tailValueAtRisk(obj.PDFlossGivenOneEvent, 0);
 
 %% PDF loss NPV
 
+tic
 obj = obj.getPDFlossNPV;
-
+toc
 
 figure('Position', [279   527   560   420]); hold on
 for n = 1 : obj.NmaxEvents
