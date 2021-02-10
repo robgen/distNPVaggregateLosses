@@ -1,23 +1,27 @@
 %% Input (as built with Hazard L'Aquila)
 
 options.General.timeHorizon = 50;
-options.General.intRate = 0.03;
-options.General.confidenceTVaR = 0;
+options.General.intRate = 0.02;
 
-options.Vulnerability.fragMedians = [0.165879930589601,0.322526111223683,0.340170312466871,0.460814512917018];
-options.Vulnerability.fragDispersions = [0.436863904039988,0.442107162939676,0.442742956715563,0.447169859279770];
+% Concrete moment resisting frame (1970s)
+options.Vulnerability.fragMedians = [0.166,0.32,0.34,0.46];
+options.Vulnerability.fragDispersions = [0.437,0.442,0.443,0.447];
 options.Vulnerability.damgeLossRatios = [0 2 10 43.5 95]/100;
 options.Vulnerability.CoVdlr = [ 0 1 0.4 0.3 0.05 ];
 
+% Seismic hazard from L'Aquila, Italy
 options.Hazard.faultRate = 0.08;
-options.Hazard.hazCurve = [0.166427989012818,0.0332146240000000;0.217582434028613,0.0198850450000000;0.258529430931683,0.0138629440000000;0.303930770035728,0.00988592600000000;0.354443451456181,0.00713349900000000;0.412206673094016,0.00496922700000000;0.565248464301760,0.00210721000000000;0.695119133694674,0.00102586600000000;0.846507595616605,0.000404054000000000];
+options.Hazard.hazCurve = [0.166,0.0332; 0.217,0.0199; 0.258,0.014; 0.304,0.0099; 0.354,0.007; 0.412,0.005; 0.565,0.002; 0.695,0.001; 0.846,0.0004];
 
+% insurance
 options.Insurance.deductible = 0.05;
-options.Insurance.cover = 0.3;
+options.Insurance.cover = 0;
 
-options.Setup.NlossSamples = 1001;
-options.Setup.MCsamples = 100000;
+% general setup
+options.Setup.NlossSamples = 201;
+options.Setup.MCsamples = 10000;
 
+% create object
 obj = distNPVaggregateLosses(options);
 
 %% Interarrival times
@@ -111,20 +115,9 @@ xlabel('Loss, L')
 ylabel('p(L)')
 set(gca, 'FontSize', 18)
 
-% % eal check
-% meanLoss = VULNERABILITYbuilding([obj.IMdef, obj.fragilities], ...
-%     options.Vulnerability.damgeLossRatios, 'NOplot');
-% 
-% EALtest = EALcalculator(meanLoss, ...
-%     options.Hazard.hazCurve, 'plot');
-
-TVaRtest = obj.tailValueAtRisk(obj.PDFlossGivenOneEvent, 0);
-
 %% PDF loss NPV
 
-tic
 obj = obj.getPDFlossNPV;
-toc
 
 figure('Position', [279   527   560   420]); hold on
 for n = 1 : obj.NmaxEvents

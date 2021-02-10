@@ -411,6 +411,10 @@ classdef distNPVaggregateLosses
             c = self.parameters.Insurance.cover;
             %coI = self.parameters.Insurance.coinsurance; % should be included
             
+            if c ~= 0 && d >= c
+                error('Deductible is greater than cover')
+            end
+            
             if c ~= 0
                 self.PDFuninsuredGivenOneEvent(:,1) = self.PDFlossGivenOneEvent(:,1);
                 
@@ -661,13 +665,12 @@ classdef distNPVaggregateLosses
             
             x1 = pdf1(:,1)';
             
-            zOverX1Matrix = repelem(z, 1, numel(x1)) ./ ...
-                repelem(x1, numel(z), 1);
-            zOverX1Matrix(1,:) = zOverX1Matrix(1,:) + eps;
-            
             if isempty(pdf2interp)
-                pdf2Interpolant = griddedInterpolant(pdf2(:,1), pdf2(:,2));
-                pdf2interp = pdf2Interpolant(zOverX1Matrix);
+                zOverX1Matrix = repelem(z, 1, numel(x1)) ./ ...
+                    repelem(x1, numel(z), 1);
+                zOverX1Matrix(1,:) = zOverX1Matrix(1,:) + eps;
+                
+                pdf2interp = interp1(pdf2(:,1), pdf2(:,2), zOverX1Matrix);
                 pdf2interp(isnan(pdf2interp)) = 0;
             end
             
