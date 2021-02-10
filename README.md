@@ -4,7 +4,7 @@ distNPVaggregateLosses
 
 This is a Matlab class that allows to compute the distribution of the Net Present Value (NPV) of the aggregate seismic economic losses (ground up, uninsured or insured) over a given time horizon, and for a given financial discount rate. All the steps are modelled analytically. A method performing a MonteCarlo numerical approach is also provided.
 
-![alt text](https://github.com/[username]/[reponame]/blob/[branch]/image.jpg?raw=true)
+![alt text](https://github.com/robgen/distNPVaggregateLosses/blob/main/test/PDFaggLoss.jpg?raw=true)
 
 ---
 ## Buy me a coffee
@@ -36,4 +36,4 @@ A full demo of this class is given in the file testNPVlosses.m
 ---
 
 ## License
-This project is licensed under the terms of the **Creative Commons “Attribution-No Derivatives 4.0 International”** license. This software is supplied "AS IS" without any warranties and support. The Author assumes no responsibility' or liability for the use of the software. The Author reserves the right to make changes in the software without notification. 
+This project is licensed under the terms of the **Creative Commons “Attribution-No Derivatives 4.0 International”** license. This software is supplied "AS IS" without any warranties and support. The Author assumes no responsibility' or liability for the use of the software. The Author reserves the right to make changes in the software without notification.
