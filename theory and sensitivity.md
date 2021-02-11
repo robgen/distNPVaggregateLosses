@@ -11,7 +11,7 @@ The Cumulative Distribution Function (CDF) of losses for any given value of the 
 
 ![Eq 1](https://latex.codecogs.com/gif.latex?P(L&space;\leq&space;l,IM)&space;=&space;\sum_{k=0}^{nDSs}P(L&space;\leq&space;l|DS_k)P(DS_k&space;|IM)) [1]
 
-![Eq 2](https://latex.codecogs.com/gif.latex?P(L&space;\leq&space;l|DS_k)&space;\sim&space;Beta(\frac{1-MLR(DS_k)}{CoV_MLR(DS_k)^2}-MLR(DS_k&space;),&space;\frac{\alpha(1-MLR(DS_k&space;)}{MLR(DS_k}&space;)) [2]
+![Eq 2](https://latex.codecogs.com/gif.latex?P(L&space;\leq&space;l|DS_k)&space;\sim&space;Beta(\frac{1-MLR(DS_k)}{CoV_MLR(DS_k)^2}-MLR(DS_k&space;),&space;\frac{\alpha(1-MLR(DS_k&space;)}{MLR(DS_k}&space;) ) [2]
 
 ![Eq 3](https://latex.codecogs.com/gif.latex?P(DS_k|IM)=P(DS&space;\geq&space;DS_k|IM)-P(DS&space;\geq&space;DS_{k&plus;1}|IM)) [3]
 
