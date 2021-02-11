@@ -14,7 +14,8 @@ The Cumulative Distribution Function (CDF) of losses for any given value of the 
 
 ![Eq 3](http://www.sciweavers.org/tex2img.php?eq=P%28DS_k%7CIM%29%3DP%28DS%20%5Cgeq%20DS_k%7CIM%29-P%28DS%20%5Cgeq%20DS_%7Bk%2B1%7D%7CIM%29&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=0) [3]
 
-<!--- $$P(L \leq l,IM) = \sum_{k=0}^{nDSs}P(L \leq l|DS_k)P(DS_k |IM)$$ [1]
+<!---
+$$P(L \leq l,IM) = \sum_{k=0}^{nDSs}P(L \leq l|DS_k)P(DS_k |IM)$$ [1]
 
 $$P(L \leq l|DS_k) \sim Beta(\frac{1-MLR(DS_k)}{CoV_MLR(DS_k)^2}-MLR(DS_k ), \frac{\alpha(1-MLR(DS_k )}{MLR(DS_k} )$$ [2]
 
