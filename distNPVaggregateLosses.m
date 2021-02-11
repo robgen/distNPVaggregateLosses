@@ -119,7 +119,7 @@ classdef distNPVaggregateLosses
         end
         
         
-        function self = getCDFloss(self)
+        function self = getLossDistribution(self)
             
             self = getFragilities(self);
             self = getPMFds(self);
@@ -249,7 +249,7 @@ classdef distNPVaggregateLosses
         end
         
         
-        function self = getPDFaggregateLossNPV(self)
+        function self = getAggregateLossNPVdist(self)
             
             self.PDFaggUninsuredNPVGivenNevents = self.recursiveConvolution(...
                 self.PDFuninsuredNPV);
@@ -493,7 +493,7 @@ classdef distNPVaggregateLosses
             microFieldsParVals{2} = {[0.05 0.35 0.65 1.25], [0.2 0.2 0.2 0.2], [0 2 10 43.5 95]/100, [ 0 1 0.4 0.3 0.05 ]};
             
             microFieldsPar{3} = {'hazCurve', 'faultRate' };
-            microFieldsParVals{3} = {[0.166427989012818,0.0332146240000000;0.217582434028613,0.0198850450000000;0.258529430931683,0.0138629440000000;0.303930770035728,0.00988592600000000;0.354443451456181,0.00713349900000000;0.412206673094016,0.00496922700000000;0.565248464301760,0.00210721000000000;0.695119133694674,0.00102586600000000;0.846507595616605,0.000404054000000000] , 0.05};
+            microFieldsParVals{3} = {[0.166,0.0332; 0.217,0.0199; 0.258,0.014; 0.304,0.0099; 0.354,0.007; 0.412,0.005; 0.565,0.002; 0.695,0.001; 0.846,0.0004] , 0.08};
             
             microFieldsPar{4} = {'deductible', 'cover', 'coinsurance' };
             microFieldsParVals{4} = {0, 0, 1};

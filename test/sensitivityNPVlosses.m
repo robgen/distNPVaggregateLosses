@@ -26,9 +26,9 @@ for s = numel(Nsteps) : -1 : 1
     sensStep = sensStep.getPDFinterarrivalTime;
     sensStep = sensStep.getPMFnumberEvents;
     sensStep = sensStep.getPDFarrivalTime;
-    sensStep = sensStep.getCDFloss;
+    sensStep = sensStep.getLossDistribution;
     sensStep = sensStep.getPDFlossNPV;
-    sensStep = sensStep.getPDFaggregateLossNPV;
+    sensStep = sensStep.getAggregateLossNPVdist;
     toc
     
     PDFaggLossNPV{s} = sensStep.PDFaggUninsuredNPV;
@@ -43,7 +43,7 @@ sensMC = distNPVaggregateLosses(options);
 sensMC = sensMC.getPDFinterarrivalTime;
 sensMC = sensMC.getPMFnumberEvents;
 sensMC = sensMC.getPDFarrivalTime;
-sensMC = sensMC.getCDFloss;
+sensMC = sensMC.getLossDistribution;
 sensMC.parameters.Setup.MCsamples = Nsamples(end);
 tic; sensMC = sensMC.monteCarloPDFaggregateLossNPV; toc
 
@@ -57,13 +57,13 @@ sensInt = distNPVaggregateLosses(options);
 sensInt = sensInt.getPDFinterarrivalTime;
 sensInt = sensInt.getPMFnumberEvents;
 sensInt = sensInt.getPDFarrivalTime;
-sensInt = sensInt.getCDFloss;
+sensInt = sensInt.getLossDistribution;
 
 for r = numel(intRates) : -1 : 1
     sensInt.parameters.General.intRate = intRates(r);
     
     sensInt = sensInt.getPDFlossNPV;
-    sensInt = sensInt.getPDFaggregateLossNPV;
+    sensInt = sensInt.getAggregateLossNPVdist;
     sensInt = sensInt.monteCarloPDFaggregateLossNPV;
     
     sensIntAggLossNPV{r,1} = sensInt.PDFaggUninsuredNPV;
@@ -88,7 +88,7 @@ end
 axis([0 2.5 0 2.5])
 legend(leg)
 xlabel('NPV(AL)')
-ylabel('p(NPV(AL))')
+ylabel('p_{NPV(AL)}')
 set(gca, 'FontSize', 18)
 
 
@@ -101,7 +101,7 @@ end
 legend(strcat('N_{samples}=', num2str(Nsamples(:))))
 axis([0 2.5 0 2.5])
 xlabel('NPV(AL)')
-ylabel('p(NPV(AL))')
+ylabel('p_{NPV(AL)}')
 set(gca, 'FontSize', 18)
 
 
@@ -117,6 +117,6 @@ for r = 1 : numel(intRates)
     xlabel('NPV(AL)')
     ylabel('p(NPV(AL))')
     set(gca, 'FontSize', 18)
+    saveas(gcf, num2str(r), 'png');
     waitforbuttonpress
 end
-

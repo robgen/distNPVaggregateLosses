@@ -1,7 +1,8 @@
-%% Input (as built with Hazard L'Aquila)
+%% Input
 
 options.General.timeHorizon = 50;
-options.General.intRate = 0;
+options.General.intRate = 0.02;
+options.General.confidenceTVaR = 0.9;
 
 % Concrete moment resisting frame (1970s)
 options.Vulnerability.fragMedians = [0.166,0.32,0.34,0.46];
@@ -14,11 +15,13 @@ options.Hazard.faultRate = 0.08;
 options.Hazard.hazCurve = [0.166,0.0332; 0.217,0.0199; 0.258,0.014; 0.304,0.0099; 0.354,0.007; 0.412,0.005; 0.565,0.002; 0.695,0.001; 0.846,0.0004];
 
 % insurance
-options.Insurance.deductible = 0.05;
+options.Insurance.deductible = 0;
 options.Insurance.cover = 0;
+options.Insurance.coinsurance = 1;
 
 % general setup
 options.Setup.NlossSamples = 201;
+options.Setup.IMstep = 0.005; % [g]
 options.Setup.MCsamples = 10000;
 
 % create object
@@ -73,7 +76,7 @@ set(gca, 'FontSize', 18)
 
 %% CDF of loss given one event
 
-obj = obj.getCDFloss;
+obj = obj.getLossDistribution;
 
 figure('Position', [284   527   560   420]); hold on
 plot(obj.LOSSdef, obj.CDFlossGivenDS, 'LineWidth', 2)
@@ -126,7 +129,7 @@ for n = 1 : obj.NmaxEvents
 end
 legend(strcat('event ', num2str(nev(:))), 'Location', 'North')
 xlabel('NPV unit cash flow, NPV^{(1)}')
-ylabel('p(NPV^{(1)})')
+ylabel('p_{NPV^{(1)}}')
 set(gca, 'FontSize', 18)
 
 figure('Position', [840   527   560   420]); hold on
@@ -137,7 +140,7 @@ end
 axis([0 0.3 0 10])
 legend(strcat('event ', num2str(nev(:))), 'Location', 'NorthEast')
 xlabel('NPV loss, NPV(L)')
-ylabel('p(NPV(L))')
+ylabel('p_{NPV(L)}')
 set(gca, 'FontSize', 18)
 
 figure('Position', [560    27   560   420]); hold on
@@ -153,7 +156,7 @@ set(gca, 'FontSize', 18)
 
 %% PDF aggregate loss NPV
 
-obj = obj.getPDFaggregateLossNPV;
+obj = obj.getAggregateLossNPVdist;
 
 figure; hold on
 for n = 1 : obj.NmaxEvents
@@ -172,7 +175,7 @@ plot(obj.PDFaggUninsuredNPV(:,1), obj.PDFaggUninsuredNPV(:,2), ...
      'LineWidth', 2)
 axis([0 2.5 0 obj.PDFaggUninsuredNPV(20,2)])
 xlabel('NPV(AL)')
-ylabel('p(NPV(AL))')
+ylabel('p_{NPV(AL)}')
 set(gca, 'FontSize', 18)
 
 figure; hold on
