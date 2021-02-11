@@ -140,7 +140,7 @@ obj = obj.getLossDistribution;
 ```
 
 ![fragilities](https://github.com/robgen/distNPVaggregateLosses/blob/main/test/fragilities.png?raw=true)
-![CDFlosssGivenDS](https://github.com/robgen/distNPVaggregateLosses/blob/main/test/CDFlosssGivenDS.png?raw=true)
+![CDFlosssGivenDS](https://github.com/robgen/distNPVaggregateLosses/blob/main/test/CDFlossGivenDS.png?raw=true)
 ![lossDistributionPercentiles](https://github.com/robgen/distNPVaggregateLosses/blob/main/test/lossDistributionPercentiles.png?raw=true)
 ![lossGivenOne](https://github.com/robgen/distNPVaggregateLosses/blob/main/test/lossGivenOne.png?raw=true)
 
