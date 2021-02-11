@@ -1,3 +1,5 @@
+
+
 Theory and Sensitivity Analysis for distNPVaggregateLosses
 ============
 
@@ -8,7 +10,7 @@ Theory and Sensitivity Analysis for distNPVaggregateLosses
 The Cumulative Distribution Function (CDF) of losses for any given value of the Intensity measure (IM) of the ground motion is calculated with Eq. 1, which requires the CDF of the loss for any given damage state P(L≤l|DS_k) and the probability of the structure to be in DS_k for any given IM, P(DS_k |IM). For each DS_k (with k ranging from 0, no damage, to the number of considered damage states nDSs), P(L≤l|DS_k) is represented by a Beta distribution (Eq. 2) whose defining parameters depend on the mean loss ratio, MLR(DS_k), defined as the repair-to-reconstruction cost of the structure, and its coefficient of variation, CoV_(MLR(DS_k)). Clearly, such data should be consistent with the chosen definition of the DSs. It is worth mentioning that P(L≤l|DS_0)=1 for any l. On the other hand, P(DS_k|IM) is calculated with Eq. 3 based on the fragility curves for each DS, P(DS≥DS_k|IM). It is worth noting that P(DS≥DS_0|IM)=1 and P(DS≥DS_(nDSs+1)|IM)=0 for any given IM. Although Equations 1-3 refer to one single event, the conditioning to N_{ev}=1 is omitted from the notation, for simplicity.
 
 
-![Eq 1](http://www.sciweavers.org/tex2img.php?eq=P%28L%20%5Cleq%20l%2CIM%29%20%3D%20%5Csum_%7Bk%3D0%7D%5E%7BnDSs%7DP%28L%20%5Cleq%20l%7CDS_k%29P%28DS_k%20%7CIM%29&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=0) [1]
+![Eq 1](https://latex.codecogs.com/gif.latex?P(L&space;\leq&space;l,IM)&space;=&space;\sum_{k=0}^{nDSs}P(L&space;\leq&space;l|DS_k)P(DS_k&space;|IM)) [1]
 
 ![Eq 2](http://www.sciweavers.org/tex2img.php?eq=P%28L%20%5Cleq%20l%7CDS_k%29%20%5Csim%20Beta%28%5Cfrac%7B1-MLR%28DS_k%29%7D%7BCoV_MLR%28DS_k%29%5E2%7D-MLR%28DS_k%20%29%2C%20%5Cfrac%7B%5Calpha%281-MLR%28DS_k%20%29%7D%7BMLR%28DS_k%7D%20%29&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=0) [2]
 
