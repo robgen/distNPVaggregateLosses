@@ -72,12 +72,15 @@ classdef distNPVaggregateLosses
         function self = getPDFarrivalTime(self, NmaxEvents)
             %getPDFarrivalTime Erlang PDF for Tau|n events
             
+            if isempty(self.PDFinterarrivalTime)
+                self = self.getPDFinterarrivalTime;
+            end
+            
             if nargin < 2
                 if isempty(self.NmaxEvents)
-                    NmaxEvents = 10;
-                else
-                    NmaxEvents = self.NmaxEvents;
+                    self = self.getPMFnumberEvents;
                 end
+                NmaxEvents = self.NmaxEvents;
             end
             
             v = self.parameters.Hazard.faultRate;
@@ -140,85 +143,13 @@ classdef distNPVaggregateLosses
             self.EAL = self.tailValueAtRisk(self.CDFlossGivenOneEvent, 0);
             self.EALu = self.tailValueAtRisk(self.CDFuninsuredGivenOneEvent, 0);
         end
-        
-        
-        %         function self = getPDFlossNPV(self)
-        %
-        %             self = getPDFunitCashFlowNPV(self);
-        %
-        %             npvL = self.LOSSdef;
-        %             L = self.LOSSdef';
-        %
-        %             npvLoverLMatrix = repelem(npvL, 1, numel(L)) ./ ...
-        %                 repelem(L, numel(npvL), 1);
-        %             npvLoverLMatrix(1,:) = npvLoverLMatrix(1,:) + eps;
-        %
-        %             absOneOverL = abs(1./L);
-        %
-        %             deltaLmat = repelem(L(2:end)-L(1:end-1), numel(npvL), 1);
-        %             pdfLmatrix = repelem(...
-        %                 self.PDFuninsuredGivenOneEvent(:,2)', numel(npvL), 1);
-        %
-        %             PDFnpv1Interp = zeros(numel(npvL), numel(L));
-        %             for n = self.NmaxEvents : -1 : 1
-        %
-        %                 PDFnpv1Interp(npvLoverLMatrix<=1) = interp1(...
-        %                     self.PDFunitCashFlowNPV(:,1), ...
-        %                     self.PDFunitCashFlowNPV(:,n+1), ...
-        %                     npvLoverLMatrix(npvLoverLMatrix<=1));
-        %                 % PDFuninsuredGivenOneEvent is not defined for NPVratioMatrix>1
-        %
-        %                 integrand = pdfLmatrix .* PDFnpv1Interp .* absOneOverL;
-        %
-        %                 self.PDFuninsuredNPV(:,n+1) = sum( ...
-        %                     (integrand(:,2:end)+integrand(:,1:end-1)) .* ...
-        %                     deltaLmat * 0.5, 2);
-        %             end
-        %
-        %             self.PDFuninsuredNPV(:,1) = npvL;
-        %
-        %         end
-        
-        
-        %         function self = getPDFlossNPV(self)
-        %
-        %             self = getPDFunitCashFlowNPV(self);
-        %
-        %             npvL = self.LOSSdef;
-        %             npv1 = self.PDFunitCashFlowNPV(:,1)';
-        %
-        %             NPVratioMatrix = repelem(npvL, 1, numel(npv1)) ./ ...
-        %                 repelem(npv1, numel(npvL), 1);
-        %             NPVratioMatrix(1,:) = NPVratioMatrix(1,:) + eps;
-        %
-        %             PDFlossInterp = zeros(numel(npvL), numel(npv1));
-        %             PDFlossInterp(NPVratioMatrix<=1) = interp1(...
-        %                 self.PDFuninsuredGivenOneEvent(:,1), ...
-        %                 self.PDFuninsuredGivenOneEvent(:,2), ...
-        %                 NPVratioMatrix(NPVratioMatrix<=1));
-        %             % PDFuninsuredGivenOneEvent is not defined for NPVratioMatrix>1
-        %
-        %             absOneOverNPV1 = abs(1./npv1);
-        %
-        %             deltaNPV1mat = repelem(npv1(2:end)-npv1(1:end-1), numel(npvL), 1);
-        %             for n = self.NmaxEvents : -1 : 1
-        %                 PDFnpv1matrix = repelem(...
-        %                     self.PDFunitCashFlowNPV(:,n+1)', numel(npvL), 1);
-        %
-        %                 integrand = PDFnpv1matrix .* PDFlossInterp .* absOneOverNPV1;
-        %
-        %                 self.PDFuninsuredNPV(:,n+1) = sum( ...
-        %                     (integrand(:,2:end)+integrand(:,1:end-1)) .* ...
-        %                     deltaNPV1mat * 0.5, 2);
-        %             end
-        %
-        %             self.PDFuninsuredNPV(:,1) = npvL;
-        %
-        %         end
-        
+                
         
         function self = getPDFlossNPV(self)
-            % slower but more reliable method
+            
+            if isempty(self.PDFuninsuredGivenOneEvent)
+                self = self.getLossDistribution;
+            end
             
             self = getPDFunitCashFlowNPV(self);
             
@@ -251,6 +182,10 @@ classdef distNPVaggregateLosses
         
         function self = getAggregateLossNPVdist(self)
             
+            if isempty(self.PDFuninsuredNPV)
+                self = self.getPDFlossNPV;
+            end
+            
             self.PDFaggUninsuredNPVGivenNevents = self.recursiveConvolution(...
                 self.PDFuninsuredNPV);
             
@@ -271,6 +206,10 @@ classdef distNPVaggregateLosses
         
         
         function self = monteCarloPDFaggregateLossNPV(self)
+            
+            if isempty(self.CDFlossGivenOneEvent)
+                self = self.getLossDistribution;
+            end
             
             for n = self.parameters.Setup.MCsamples : -1 : 1
                 timeSim = self.poissonProcess(...
@@ -387,6 +326,10 @@ classdef distNPVaggregateLosses
         
         
         function self = getPDFunitCashFlowNPV(self)
+            
+            if isempty(self.NmaxEvents)
+                self = self.getPMFnumberEvents;
+            end
             
             r = self.parameters.General.intRate;
             v = self.parameters.Hazard.faultRate;
