@@ -235,11 +235,141 @@ classdef distNPVaggregateLosses
                 self.NPVaggInsuredMC(n,1) = sum(insuredLossSim ./ ...
                     (1+self.parameters.General.intRate).^timeSim);
             end
-                
+            
         end
-                
         
-        % function plotAllResults()
+        
+        function plotAllResults(self)
+            
+            colEvents = gray(self.NmaxEvents+1);
+            nev = 1 : self.NmaxEvents;
+            
+            figure;
+            bar(self.PMFnumberEvents(:,1), self.PMFnumberEvents(:,2))
+            xlabel('Number of events N_{ev}')
+            ylabel('P(N_{ev})')
+            set(gca, 'FontSize', 18)
+            
+            figure; hold on
+            for n = 1 : self.NmaxEvents
+                plot(self.PDFarrivalTime(:,1), self.PDFarrivalTime(:,n+1), ...
+                    'LineWidth', 2, 'Color', colEvents(n,:))
+            end
+            legend(strcat('N_{ev}=', num2str(nev(:))))
+            xlabel('Arrival time \tau')
+            ylabel('p(\tau)')
+            set(gca, 'FontSize', 18)
+            
+            figure('Position', [284   527   560   420]); hold on
+            plot(self.LOSSdef, self.CDFlossGivenDS, 'LineWidth', 2)
+            
+            DSs = 0 : 4;
+            legend(strcat('DS', num2str(DSs(:))))
+            xlabel('Loss ratio, lr')
+            ylabel('P(LR\leqlr|DS)')
+            set(gca, 'FontSize', 18)
+            
+            
+            figure('Position', [845   527   560   420]); hold on
+            percentiles = [5 50 95];
+            for p = 1 : numel(percentiles)
+                plot(self.IMdef, prctile(self.CDFlossGivenIM, percentiles(p), 2), ...
+                    'LineWidth', 2)
+            end
+            legend('5%', 'Median', '95%', 'Mean')
+            xlabel('IM'); ylabel('Loss ratio [-]');
+            set(gca, 'FontSize', 18)
+            
+            figure('Position', [284    27   560   420]); hold on
+            plot(self.CDFlossGivenOneEvent(:,1), self.CDFlossGivenOneEvent(:,2), ...
+                'LineWidth', 2)
+            plot(self.CDFuninsuredGivenOneEvent(:,1), ...
+                self.CDFuninsuredGivenOneEvent(:,2), 'LineWidth', 2)
+            xlabel('Loss, l')
+            ylabel('P(L\leql)')
+            set(gca, 'FontSize', 18)
+            
+            
+            figure('Position', [845    27   560   420]); hold on
+            plot(self.PDFlossGivenOneEvent(:,1), self.PDFlossGivenOneEvent(:,2), ...
+                'LineWidth', 2)
+            plot(self.PDFuninsuredGivenOneEvent(:,1), ...
+                self.PDFuninsuredGivenOneEvent(:,2), 'LineWidth', 2)
+            axis([0 1 0 10])
+            xlabel('Loss, L')
+            ylabel('p(L)')
+            set(gca, 'FontSize', 18)
+            
+            figure('Position', [279   527   560   420]); hold on
+            for n = 1 : self.NmaxEvents
+                plot(self.PDFunitCashFlowNPV(:,1), self.PDFunitCashFlowNPV(:,n+1), ...
+                    'LineWidth', 2, 'Color', colEvents(n,:))
+            end
+            legend(strcat('event ', num2str(nev(:))), 'Location', 'North')
+            xlabel('NPV unit cash flow, NPV^{(1)}')
+            ylabel('p_{NPV^{(1)}}')
+            set(gca, 'FontSize', 18)
+            
+            figure('Position', [840   527   560   420]); hold on
+            for n = 1 : self.NmaxEvents
+                plot(self.PDFuninsuredNPV(:,1), self.PDFuninsuredNPV(:,n+1), ...
+                    'LineWidth', 2, 'Color', colEvents(n,:))
+            end
+            axis([0 0.3 0 10])
+            legend(strcat('event ', num2str(nev(:))), 'Location', 'NorthEast')
+            xlabel('NPV loss, NPV(L)')
+            ylabel('p_{NPV(L)}')
+            set(gca, 'FontSize', 18)
+            
+            figure('Position', [560    27   560   420]); hold on
+            for n = 1 : self.NmaxEvents
+                plot(self.PDFuninsuredNPV(:,1), ...
+                    cumtrapz(self.PDFuninsuredNPV(:,1),self.PDFuninsuredNPV(:,n+1)), ...
+                    'LineWidth', 2, 'Color', colEvents(n,:))
+            end
+            legend(strcat('event ', num2str(nev(:))), 'Location', 'NorthEast')
+            xlabel('NPV loss, npv(L)')
+            ylabel('p(NPV(L)>npv(L))')
+            set(gca, 'FontSize', 18)
+            
+            figure; hold on
+            for n = 1 : self.NmaxEvents
+                plot(self.PDFaggUninsuredNPVGivenNevents(:,1), ...
+                    self.PDFaggUninsuredNPVGivenNevents(:,n+1), ...
+                    'LineWidth', 2, 'Color', colEvents(n,:))
+            end
+            axis([0 2.5 0 self.PDFaggUninsuredNPV(20,2)])
+            legend(strcat('event ', num2str(nev(:))), 'Location', 'NorthEast')
+            xlabel('NPV(AL)')
+            ylabel('p(NPV(AL))')
+            set(gca, 'FontSize', 18)
+            
+            figure; hold on
+            plot(self.PDFaggUninsuredNPV(:,1), self.PDFaggUninsuredNPV(:,2), ...
+                'LineWidth', 2)
+            axis([0 2.5 0 self.PDFaggUninsuredNPV(20,2)])
+            xlabel('NPV(AL)')
+            ylabel('p_{NPV(AL)}')
+            set(gca, 'FontSize', 18)
+            
+            figure; hold on
+            plot(self.CDFaggUninsuredNPV(:,1), self.CDFaggUninsuredNPV(:,2), ...
+                'LineWidth', 2)
+            xlabel('NPV(AL)')
+            ylabel('p(NPV(AL))')
+            set(gca, 'FontSize', 18)
+            
+            figure; hold on
+            h = histogram(self.NPVaggUninsuredMC, self.PDFaggUninsuredNPV(1:256:end,1), ...
+                'Normalization', 'pdf', 'FaceColor', 0.94*[1 1 1]);
+            plot(self.PDFaggUninsuredNPV(:,1), self.PDFaggUninsuredNPV(:,2), ...
+                'LineWidth', 2, 'Color', [0 0.447058823529412 0.741176470588235])
+            legend('MonteCarlo', 'Analytical')
+            axis([0 2.5 0 2.5])
+            xlabel('NPV(AL) [-]')
+            ylabel('PDF_{NPV(AL)}')
+            set(gca, 'FontSize', 18)            
+        end
         
         
         %%% Micro functions
@@ -329,6 +459,7 @@ classdef distNPVaggregateLosses
             
             if isempty(self.NmaxEvents)
                 self = self.getPMFnumberEvents;
+                self = self.getPDFarrivalTime;
             end
             
             r = self.parameters.General.intRate;

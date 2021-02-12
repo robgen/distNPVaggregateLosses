@@ -199,7 +199,7 @@ axis([0 2.5 0 2.5])
 xlabel('NPV(AL) [-]')
 ylabel('PDF_{NPV(AL)}')
 set(gca, 'FontSize', 18)
-saveas(gcf, 'PDFaggLoss', 'png'); close
+%saveas(gcf, 'PDFaggLoss', 'png'); close
 
 %% Test PDF areas
 
